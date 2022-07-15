@@ -1,0 +1,28 @@
+package com.tyss.optimize.data.models.db.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ProjectDashboard extends BaseEntity {
+
+    ProjectType projectType;
+    ProjectStatus projectStatus;
+    ProjectType openProjectType;
+    ProjectType archiveProjectType;
+    ProjectType closedProjectType;
+    Project projectDetails;
+    ProjectResource resources;
+    List<ExecutionSuites> executionSuites;
+    List<ExecutionSchedules> executionSchedules;
+    SuiteData suiteInfo;
+}

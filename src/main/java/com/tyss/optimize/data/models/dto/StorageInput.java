@@ -1,0 +1,14 @@
+package com.tyss.optimize.data.models.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class StorageInput {
+    private String bucketName;
+}
