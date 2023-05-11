@@ -33,11 +33,10 @@ public class Step extends BaseEntity {
     @Id
     private String id;
 
-    @NotNull(message = "stepName is mandatory")
-    @NotBlank(message = "name must not be blank")
     @ApiModelProperty(notes = "The Step Name")
-    @Size(min = 3, max = 25, message
-            = "Name must be between 3 and 25 characters")
+    @Size(min = 2, message = "Name must have 2 or more characters")
+    @NotNull(message = "name is mandatory")
+    @NotBlank(message = "name must not be blank")
     private String name;
     private String tempName;
     @NotBlank(message = "stepType is mandatory")
@@ -60,11 +59,11 @@ public class Step extends BaseEntity {
     private String nlpId;
 
     @ApiModelProperty(notes = "The Pass Message")
-    @Size(max =50,message = "passMessage must be 25 characters")
+    @Size(min = 2, message = "passMessage must have 2 or more characters")
     private String passMessage;
 
     @ApiModelProperty(notes = "The Fail Message")
-    @Size(max =50,message = "failMessage must be 25 characters")
+    @Size(min = 2, message = "failMessage must have 2 or more characters")
     private String failMessage;
 
     @ApiModelProperty(notes = "The Details of Element")

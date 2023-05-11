@@ -25,10 +25,9 @@ public class Library extends BaseEntity{
 
 	@Id
 	public String id;
+	@Size(min = 2, message = "Name must have 2 or more characters")
 	@NotNull(message = "name is mandatory")
 	@NotBlank(message = "name must not be blank")
-	@Size(min = 3, max = 100, message
-			= "Name must be between 3 and 100 characters")
 	String name;
 	@Size(max = 200,message ="Description must be 200 characters" )
 	String desc;

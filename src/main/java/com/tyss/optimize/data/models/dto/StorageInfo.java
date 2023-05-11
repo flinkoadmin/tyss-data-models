@@ -30,4 +30,5 @@ public class StorageInfo {
     private List<FileMapperDTO> fileMappers;
     private InputStream inputStream;
     private String driverBucketName;
+    private String licenseId;
 }

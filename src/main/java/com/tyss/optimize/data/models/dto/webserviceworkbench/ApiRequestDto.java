@@ -14,7 +14,9 @@ public class ApiRequestDto {
         private String description;
         private String method = "GET";
         private Object requestBody;
+        private String bodyType;
         private List<NameValueDto> queryParams;
+        private List<NameValueDto> urlEncoded;
         private List<NameValueDto> headers;
         private String authType;
         private Object auth;
@@ -22,7 +24,7 @@ public class ApiRequestDto {
         private StepDto preStep;
         private StepDto postStep;
         private Map<String, List<AppFileMinimalDto>> fileParamMap;
-        private Map<String, AssignVariableValueDto> updateVariables; //set these variables based on response of the actual API invocation
+        private List<AssignVariableValueDto> updateVariables; //set these variables based on response of the actual API invocation
         private List<StepDto> nlpAssertions;//TODO revisit this later
         private Map<String,Object> clientVariableMap;
 }

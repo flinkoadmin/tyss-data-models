@@ -25,5 +25,7 @@ public class Parameter extends BaseEntity{
     private String id;
     private String name;
     private String type;
+    private String reference;
+    private String value;
     private List<String> usedInStep;
 }

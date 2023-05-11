@@ -3,10 +3,13 @@ package com.tyss.optimize.nlp.util;
 
 import com.tyss.optimize.data.models.dto.IDriver;
 import com.tyss.optimize.data.models.dto.StorageInfo;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.ios.IOSDriver;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import java.util.HashMap;
@@ -18,19 +21,26 @@ import java.util.Map;
 @AllArgsConstructor
 public class NlpRequestModel {
 
-	IDriver driver;
-	
-	String url;
-	
-	Map<String, Object> attributes = new HashMap<>();
-	
-	DesiredCapabilities desiredCapabilities;
-	
-	String passMessage;
-	
-	String failMessage;
+	@Deprecated(forRemoval = true)
+	private IDriver driver;
+	private WebDriver webDriver;
+	private AndroidDriver androidDriver;
+	private IOSDriver iosDriver;
+	private String url;
 
-	StorageInfo storageInfo;
+	private Map<String, Object> attributes = new HashMap<>();
 
-	String driverPath;
+	private DesiredCapabilities desiredCapabilities;
+
+	private String passMessage;
+
+	private String failMessage;
+
+	private String actualFailMessage;
+
+	private StorageInfo storageInfo;
+
+	private String driverPath;
+
+	private boolean headless;
 }

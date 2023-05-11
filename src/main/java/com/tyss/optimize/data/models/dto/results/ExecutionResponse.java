@@ -3,8 +3,11 @@ package com.tyss.optimize.data.models.dto.results;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.db.model.BaseEntity;
 import com.tyss.optimize.data.models.db.model.Locator;
+import com.tyss.optimize.data.models.dto.ResponseDTO;
 import com.tyss.optimize.data.models.dto.StorageInfo;
 
+import com.tyss.optimize.data.models.dto.kafka.FireflinkMessageDto;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -59,5 +62,13 @@ public class ExecutionResponse extends BaseEntity {
     private String userId;
     private String suiteAccess;
     private String updateType;
-    public Map<String, String> manualUpdateObject;
+    private String manualUser;
+    public Map<String, Object> manualUpdateObject;
+    String payloadReference;
+    String objectId;
+    private FireflinkMessageDto fireflinkMessageDto;
+    @ApiModelProperty(notes = "Tree data for the completed execution")
+    ResponseDTO fancyTreeData;
+    @ApiModelProperty(notes = "If tree data exists")
+    boolean treeDataExists;
 }

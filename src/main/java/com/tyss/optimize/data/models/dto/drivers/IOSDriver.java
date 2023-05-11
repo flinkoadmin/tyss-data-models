@@ -6,6 +6,7 @@ import com.tyss.optimize.data.models.dto.ScriptDetails;
 import org.springframework.stereotype.Component;
 
 @Component(value = "iosDriver")
+@Deprecated
 public class IOSDriver implements IDriver {
 
     private io.appium.java_client.ios.IOSDriver iosDriver;

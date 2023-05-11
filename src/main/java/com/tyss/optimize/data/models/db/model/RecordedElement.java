@@ -3,6 +3,7 @@ package com.tyss.optimize.data.models.db.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
+import org.json.simple.JSONObject;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -51,5 +52,11 @@ public class RecordedElement extends BaseEntity {
     private boolean publish=false;
     private boolean newState = false;
 
-
+    private String elementId;
+    private List<String> users;
+    private List<String> excludeUsers;
+    private List<JSONObject> deleteUsers;
+    private boolean activeStatus;
+    private String version;
+    private boolean updatedStatus;
 }

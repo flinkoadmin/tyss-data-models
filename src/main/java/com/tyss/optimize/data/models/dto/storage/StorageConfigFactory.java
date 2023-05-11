@@ -27,6 +27,15 @@ public class StorageConfigFactory {
 		
 		return storageCache.get("sharedDrive");
 	}
-	
+
+	public StorageManager getStorageManagerNonStatic(String type) {
+
+		if (null != storageCache && storageCache.containsKey(type) ) {
+
+			return storageCache.get(type);
+		}
+
+		return storageCache.get("sharedDrive");
+	}
 
 }

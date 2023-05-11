@@ -1,7 +1,5 @@
 package com.tyss.optimize.data.models.db.service;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.result.UpdateResult;
 import com.tyss.optimize.common.model.auth.AccessTokenMapper;
@@ -9,15 +7,18 @@ import com.tyss.optimize.common.util.CommonConstants;
 import com.tyss.optimize.common.util.CommonUtil;
 import com.tyss.optimize.common.util.PlatformTypes;
 import com.tyss.optimize.common.util.ProjectTypes;
-import com.tyss.optimize.data.models.db.cache.CacheService;
-import com.tyss.optimize.data.models.db.cache.UserCache;
+import com.tyss.optimize.config.ReqHeader;
+import com.tyss.optimize.config.SpringBeans;
 import com.tyss.optimize.data.models.db.model.*;
 import com.tyss.optimize.data.models.dto.ResourceResponse;
 import com.tyss.optimize.data.models.dto.ResponseDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.Document;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.keycloak.KeycloakPrincipal;
+import org.keycloak.KeycloakSecurityContext;
+import org.keycloak.adapters.springsecurity.token.KeycloakAuthenticationToken;
+import org.keycloak.representations.AccessToken;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -34,9 +35,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.Principal;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
 import static org.springframework.data.mongodb.core.FindAndModifyOptions.options;
@@ -48,9 +51,6 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 public class MongoUtilService {
 
     private final int initValue = 1000;
-
-    @Autowired
-    private CacheService cacheService;
 
     public String generateSequence(String seqName, MongoTemplate mongoTemplate) {
 
@@ -101,7 +101,7 @@ public class MongoUtilService {
 
 
 
-    public Map generateSearchKey(String parentId, String newId, String resourceName, String collectionName , MongoTemplate mongoTemplate)
+    public Map generateSearchKey(String parentId, String newId, String resourceName, String collectionName, MongoTemplate mongoTemplate)
     {
         Map<String, String> searchKeyMap = new HashMap<>();
 
@@ -128,7 +128,7 @@ public class MongoUtilService {
         return searchKeyMap;
     }
 
-    public List<String> getSearchKeyEntries(String parentId, String collectionName , MongoTemplate mongoTemplate)
+    public List<String> getSearchKeyEntries(String parentId, String collectionName, MongoTemplate mongoTemplate)
     {
             List<String> searchKeyEntries = new ArrayList<>();
             Query parentQuery = Query.query(Criteria.where("_id").
@@ -148,7 +148,7 @@ public class MongoUtilService {
         return searchKeyEntries;
     }
 
-    public boolean isDuplicate(String parentId, String name, String collectionName , MongoTemplate mongoTemplate) {
+    public boolean isDuplicate(String parentId, String name, String collectionName, MongoTemplate mongoTemplate) {
         Query parentQuery = null;
         if(Objects.nonNull(parentId)) {
             parentQuery = Query.query(Criteria.where("parentId").
@@ -162,20 +162,77 @@ public class MongoUtilService {
     }
 
     public boolean isDuplicateIgnoreCase(String parentId, String name, String projectId, String collectionName, MongoTemplate mongoTemplate) {
-        Query parentQuery = null;
-        String regexStr = "^" + name+ "$";
-        if(Objects.nonNull(parentId)) {
-            parentQuery = Query.query(Criteria.where("parentId").
-                    is(parentId).and("name").regex(regexStr, "i").and("projectId").is(projectId));
-        }else{
-            parentQuery = Query.query(Criteria.where("name").regex(regexStr, "i").and("projectId").is(projectId));
+        Query parentQuery = null,parentDirectQuery = null;
+        boolean unMatchedClose = false;
+        if (Objects.nonNull(parentId)) {
+            try {
+                parentQuery = Query.query(Criteria.where("parentId").
+                        is(parentId).and("name").regex(Pattern.compile(Pattern.quote(name), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)).and("projectId").is(projectId));
+                parentDirectQuery = Query.query(Criteria.where("parentId").
+                        is(parentId).and("name").is(name).and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("parentId").is(parentId).and("projectId").is(projectId));
+                }
+            }
+        } else {
+            try {
+                parentQuery = Query.query(Criteria.where("name").regex(Pattern.compile(Pattern.quote(name), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)).and("projectId").is(projectId));
+                parentDirectQuery = Query.query(Criteria.where("name").is(name).and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("projectId").is(projectId));
+                }
+            }
         }
         log.info("isDuplicateIgnoreCase Query: " + parentQuery);
-        Long count = mongoTemplate.count(parentQuery, collectionName);
-        return (count > 0) ? true : false;
+        long count = 0, countDirect = 0;
+        if (unMatchedClose) {
+            List<Document> list = mongoTemplate.find(parentQuery, Document.class, collectionName);
+            list = list.stream().filter(document -> document.get("name").toString().equals(name)).collect(Collectors.toList());
+            count = list.size();
+        } else {
+            count = mongoTemplate.count(parentQuery, collectionName);
+            countDirect = mongoTemplate.count(parentDirectQuery, collectionName);
+        }
+        return ((count > 0) && (countDirect > 0)) ? true : false;
     }
 
-    public List<Page> duplicatePages(String parentId, String name, String collectionName , MongoTemplate mongoTemplate) {
+    public List<Page> duplicatePagesIgnoreCase(String parentId, String name, String projectId, String collectionName, MongoTemplate mongoTemplate) {
+        Query parentQuery = null;
+        String regexStr = "^" + name+ "$";
+        boolean unMatchedClose = false;
+        if(Objects.nonNull(parentId)) {
+            try {
+                parentQuery = Query.query(Criteria.where("parentId").
+                        is(parentId).and("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("parentId").is(parentId).and("projectId").is(projectId));
+                }
+            }
+        }else{
+            try {
+                parentQuery = Query.query(Criteria.where("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("projectId").is(projectId));
+                }
+            }
+        }
+        log.info("duplicatePagesIgnoreCase Query: " + parentQuery);
+        List<Page> pageList = mongoTemplate.find(parentQuery,Page.class,collectionName);
+        if (unMatchedClose) {
+            return pageList.stream().filter(page -> page.getName().equals(name)).collect(Collectors.toList());
+        }
+        return pageList;
+    }
+
+    public List<Page> duplicatePages(String parentId, String name, String collectionName, MongoTemplate mongoTemplate) {
         Query parentQuery = null;
         if(Objects.nonNull(parentId)) {
             parentQuery = Query.query(Criteria.where("parentId").
@@ -186,7 +243,39 @@ public class MongoUtilService {
         return mongoTemplate.find(parentQuery,Page.class,collectionName);
     }
 
-    public List<PackageModel> duplicatePackages(String parentId, String name, String collectionName , MongoTemplate mongoTemplate) {
+    public List<PackageModel> duplicatePackagesIgnoreCase(String parentId, String name, String projectId, String collectionName, MongoTemplate mongoTemplate) {
+        Query parentQuery = null;
+        String regexStr = "^" + name+ "$";
+        boolean unMatchedClose = false;
+        if(Objects.nonNull(parentId)) {
+            try {
+                parentQuery = Query.query(Criteria.where("parentId").
+                        is(parentId).and("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("parentId").is(parentId).and("projectId").is(projectId));
+                }
+            }
+        }else{
+            try {
+                parentQuery = Query.query(Criteria.where("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("projectId").is(projectId));
+                }
+            }
+        }
+        log.info("duplicatePackagesIgnoreCase Query: " + parentQuery);
+        List<PackageModel> packageModelList = mongoTemplate.find(parentQuery, PackageModel.class,collectionName);
+        if (unMatchedClose) {
+            return packageModelList.stream().filter(packageModel -> packageModel.getName().equals(name)).collect(Collectors.toList());
+        }
+        return packageModelList;
+    }
+
+    public List<PackageModel> duplicatePackages(String parentId, String name, String collectionName, MongoTemplate mongoTemplate) {
         Query parentQuery = null;
         if(Objects.nonNull(parentId)) {
             parentQuery = Query.query(Criteria.where("parentId").
@@ -197,7 +286,39 @@ public class MongoUtilService {
         return mongoTemplate.find(parentQuery, PackageModel.class,collectionName);
     }
 
-    public List<Library> duplicateLibraries(String parentId, String name, String collectionName , MongoTemplate mongoTemplate) {
+    public List<Library> duplicateLibrariesIgnoreCase(String parentId, String name, String projectId, String collectionName, MongoTemplate mongoTemplate) {
+        Query parentQuery = null;
+        String regexStr = "^" + name+ "$";
+        boolean unMatchedClose = false;
+        if (Objects.nonNull(parentId)) {
+            try {
+                parentQuery = Query.query(Criteria.where("parentId").
+                        is(parentId).and("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("parentId").is(parentId).and("projectId").is(projectId));
+                }
+            }
+        }else{
+            try {
+                parentQuery = Query.query(Criteria.where("name").regex(regexStr, "i").and("projectId").is(projectId));
+            } catch (PatternSyntaxException e) {
+                if (e.getMessage().contains("Unmatched closing")) {
+                    unMatchedClose = true;
+                    parentQuery = Query.query(Criteria.where("projectId").is(projectId));
+                }
+            }
+        }
+        log.info("duplicateLibrariesIgnoreCase Query: " + parentQuery);
+        List<Library> libraryList = mongoTemplate.find(parentQuery, Library.class, collectionName);
+        if (unMatchedClose) {
+            return libraryList.stream().filter(library -> library.getName().equals(name)).collect(Collectors.toList());
+        }
+        return libraryList;
+    }
+
+    public List<Library> duplicateLibraries(String parentId, String name, String collectionName, MongoTemplate mongoTemplate) {
         Query parentQuery = null;
         if(Objects.nonNull(parentId)) {
             parentQuery = Query.query(Criteria.where("parentId").
@@ -208,7 +329,7 @@ public class MongoUtilService {
         return mongoTemplate.find(parentQuery, Library.class,collectionName);
     }
     
-    public long updateParentCount(String parentId, String countField, String collectionName , MongoTemplate mongoTemplate) {
+    public long updateParentCount(String parentId, String countField, String collectionName, MongoTemplate mongoTemplate) {
 
         Document update = mongoTemplate.findAndModify(query(where("_id").is(parentId)),
                 new Update().inc(countField,1), options().returnNew(true).upsert(false),
@@ -221,7 +342,7 @@ public class MongoUtilService {
         return Long.valueOf((Objects.nonNull(update.get(countField))) ? update.get(countField).toString() : "0");
     }
 
-    public long decrementParentCount(String parentId, String countField, String collectionName , MongoTemplate mongoTemplate) {
+    public long decrementParentCount(String parentId, String countField, String collectionName, MongoTemplate mongoTemplate) {
 
         Document update = mongoTemplate.findAndModify(query(where("_id").is(parentId)),
                 new Update().inc(countField,-1), options().returnNew(true).upsert(false),
@@ -234,7 +355,7 @@ public class MongoUtilService {
         return Long.valueOf((Objects.nonNull(update.get(countField))) ? update.get(countField).toString() : "0");
     }
 
-    public UpdateResult updateChildCount(String parentId, String field, int count, String collectionName , MongoTemplate mongoTemplate) {
+    public UpdateResult updateChildCount(String parentId, String field, int count, String collectionName, MongoTemplate mongoTemplate) {
 
         Update update = new Update();
         update.set(field, count);
@@ -243,7 +364,7 @@ public class MongoUtilService {
         return mongoTemplate.updateFirst(query, update, collectionName);
     }
 
-    public int getChildCount(String parentId, String childField, String collectionName , MongoTemplate mongoTemplate) {
+    public int getChildCount(String parentId, String childField, String collectionName, MongoTemplate mongoTemplate) {
 
         MatchOperation matchStage = Aggregation.match(new Criteria("_id").is(parentId));
         ProjectionOperation projectStage = Aggregation.
@@ -375,55 +496,95 @@ public class MongoUtilService {
     }
 
     public AccessTokenMapper fetchUserAuthData() {
-        AccessTokenMapper accessTokenMapper = (AccessTokenMapper)
-                ((OAuth2AuthenticationDetails) SecurityContextHolder.getContext().getAuthentication().getDetails()).getDecodedDetails();
-        UserCache userCache = new UserCache();
-        userCache.setId(accessTokenMapper.getId());
-        userCache.setToken(((OAuth2AuthenticationDetails) SecurityContextHolder.getContext().getAuthentication().getDetails()).getTokenValue());
-        boolean isTokenValid;
-        try {
-            isTokenValid = cacheService.isTokenValid(userCache);
-        } catch (Exception exception) {
-            log.error("ERROR cache connection" , exception);
-            isTokenValid = false;
+        String userId = null;
+        String licenseId = null;
+        String privilege = null;
+        String userName = null;
+        String name = null;
+        AccessTokenMapper accessTokenMapper = new AccessTokenMapper();
+
+        KeycloakAuthenticationToken authentication = (KeycloakAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        if(Objects.isNull(authentication)){
+            ReqHeader reqHeaderBean = SpringBeans.getReqHeaderBean();
+            accessTokenMapper.setLicenseId(reqHeaderBean.getLicenseId());
+            accessTokenMapper.setUserName(reqHeaderBean.getUserEmail());
         }
-      //  if(Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId()) && StringUtils.
-      //          isNotEmpty(accessTokenMapper.getId()) && isTokenValid)
-        if(Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId()) && StringUtils.
-                isNotEmpty(accessTokenMapper.getId()) )
-        {
-            accessTokenMapper.setValid(true);
-            accessTokenMapper.setAccess_token(userCache.getToken());
-        }
-        else
-        {
-            accessTokenMapper.setValid(false);
+        else if(Objects.nonNull(authentication)) {
+            Principal principal = (Principal) authentication.getPrincipal();
+            KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) principal;
+            AccessToken token = kp.getKeycloakSecurityContext().getToken();
+            String accessToken = kp.getKeycloakSecurityContext().getTokenString();
+
+            accessTokenMapper.setAccess_token(accessToken);
+
+            Map<String, Object> otherClaims = token.getOtherClaims();
+            if (otherClaims.containsKey("id")) {
+                userId = (String) otherClaims.get("id");
+            }
+            accessTokenMapper.setId(userId);
+
+            if (otherClaims.containsKey("licenseId")) {
+                licenseId = (String) otherClaims.get("licenseId");
+            }
+            accessTokenMapper.setLicenseId(licenseId);
+
+            if (otherClaims.containsKey("currentPrivilege")) {
+                privilege = (String) otherClaims.get("currentPrivilege");
+            }
+            accessTokenMapper.setPrivilege(privilege);
+
+            if (otherClaims.containsKey("userName")) {
+                userName = (String) otherClaims.get("userName");
+            }
+            accessTokenMapper.setUserName(userName);
+
+            if (otherClaims.containsKey("fullName")) {
+                name = (String) otherClaims.get("fullName");
+            }
+            log.info("fetchKeycloakUserAuthData() otherClaims={}, userId={}, licenseId={},privilege={},fullName={}"
+                    , otherClaims,userId,licenseId,privilege,name);
+            accessTokenMapper.setName(name);
+
+            if (Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId())) {
+                accessTokenMapper.setValid(true);
+            } else {
+                accessTokenMapper.setValid(false);
+            }
         }
         return accessTokenMapper;
     }
 
+
+
     public AccessTokenMapper fetchUserAuthDataWithoutLicense() {
-        AccessTokenMapper accessTokenMapper = (AccessTokenMapper)
-                ((OAuth2AuthenticationDetails) SecurityContextHolder.getContext().getAuthentication().getDetails()).getDecodedDetails();
-        UserCache userCache = new UserCache();
-        userCache.setId(accessTokenMapper.getId());
-        userCache.setToken(((OAuth2AuthenticationDetails) SecurityContextHolder.getContext().getAuthentication().getDetails()).getTokenValue());
-        boolean isTokenValid;
-        try {
-            isTokenValid = cacheService.isTokenValid(userCache);
-        } catch (Exception exception) {
-            log.error("ERROR cache connection" , exception);
-            isTokenValid = false;
+
+        AccessTokenMapper accessTokenMapper = new AccessTokenMapper();
+        KeycloakAuthenticationToken authentication =
+                (KeycloakAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+        Principal principal = (Principal) authentication.getPrincipal();
+        String accessToken = null;
+        String userId = null;
+
+        if (principal instanceof KeycloakPrincipal) {
+            KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) principal;
+            AccessToken token = kp.getKeycloakSecurityContext().getToken();
+            accessToken = kp.getKeycloakSecurityContext().getTokenString();
+            accessTokenMapper.setAccess_token(accessToken);
+
+            Map<String, Object> otherClaims = token.getOtherClaims();
+            log.info("Inside fetchUserAuthDataWithoutLicense() otherClaims: "+otherClaims);
+            if(otherClaims.containsKey("id")){
+                userId = (String) otherClaims.get("id");
+            }
+            accessTokenMapper.setId(userId);
         }
-     //   if(Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId()) && isTokenValid)
-        if(Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId()))
-        {
+
+        if(Objects.nonNull(accessTokenMapper) && StringUtils.isNotEmpty(accessTokenMapper.getId())) {
             accessTokenMapper.setValid(true);
-        }
-        else
-        {
+        } else {
             accessTokenMapper.setValid(false);
         }
+
         return accessTokenMapper;
     }
 
@@ -449,7 +610,22 @@ public class MongoUtilService {
         responseDTO.setStatus(CommonConstants.FAILURE);
         return responseDTO;
     }
+    
+    public ResponseDTO prepareResponseEntity(int responseCode,String message,String status){
+        var responseDTO = new ResponseDTO();
+        responseDTO.setResponseCode(responseCode);
+        responseDTO.setMessage(message);
+        responseDTO.setStatus(status);
+        return responseDTO;
+    }
 
+    public ResponseDTO prepareResponse(ResponseDTO responseDTO,int responseCode,String message,String status){
+        responseDTO.setResponseCode(responseCode);
+        responseDTO.setMessage(message);
+        responseDTO.setStatus(status);
+        return responseDTO;
+    }
+    
     public List<MultipartFile> filterApkFiles(List<MultipartFile> files) throws IOException {
         List<MultipartFile> apkList = new ArrayList<>();
         if(!files.isEmpty()) {
@@ -685,6 +861,49 @@ public class MongoUtilService {
                 throw new RuntimeException(ex);
             }
         };
+    }
+    public Update convertConditionToUpdate(Conditions conditionDB, Conditions conditionReq)  {
+        Map<String, Object> conditionDBMap = convertObjectToMap(conditionDB);
+        Map<String, Object> conditionReqMap = convertObjectToMap(conditionReq);
+        conditionReqMap.remove("_id");
+        Update update = new Update();
+        conditionReqMap.forEach((reqKey, reqValue)->{
+            conditionDBMap.forEach((dbKey, dbValue)->{
+                if (Objects.equals(reqKey,dbKey)){
+                    conditionDBMap.put(reqKey,reqValue);
+                }
+                update.set(dbKey,dbValue);
+            });
+        });
+        return update;
+    }
+
+    public ResponseDTO conditionResponseDTO(ResponseDTO responseDTO, Conditions conditionsResult) {
+
+        if (Objects.isNull(conditionsResult)) {
+            responseDTO.setResponseCode(HttpStatus.NOT_FOUND.value());
+            responseDTO.setMessage("Resource does not exist");
+            responseDTO.setStatus(CommonConstants.FAILURE);
+        } else {
+            responseDTO.setResponseCode(HttpStatus.OK.value());
+            responseDTO.setResponseObject(1);
+            responseDTO.setStatus(CommonConstants.SUCCESS);
+        }
+        return responseDTO;
+    }
+
+    public ResponseDTO createConditionResponseDTO(ResponseDTO responseDTO, Conditions condition2, Object data) {
+
+        if (Objects.isNull(condition2) ) {
+            responseDTO.setResponseCode(HttpStatus.NOT_FOUND.value());
+            responseDTO.setMessage("Resource does not exist");
+            responseDTO.setStatus(CommonConstants.FAILURE);
+        } else {
+            responseDTO.setResponseCode(HttpStatus.OK.value());
+            responseDTO.setResponseObject(data);
+            responseDTO.setStatus(CommonConstants.SUCCESS);
+        }
+        return responseDTO;
     }
 
 }

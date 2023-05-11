@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Transient;
 
 @Data
 @AllArgsConstructor
@@ -27,6 +29,9 @@ public class PreExecution {
 	
 	@ApiModelProperty(notes = "Project id")
 	String projectId;
+
+	@ApiModelProperty(notes = "Project id")
+	String licenseId;
 	
 	@ApiModelProperty(notes = "Screenshot required - true/false")
 	String screenshotRequired;
@@ -90,7 +95,22 @@ public class PreExecution {
 
 	@ApiModelProperty(notes = "Type of scripts used in an executon")
 	String executionType;
-	
+
+	List<String> variableUsed;
+
+	String suiteExecutionType;
+
+	@ApiModelProperty(notes = "Unique step numbers steps")
 	int stepNumber;
+
+	@ApiModelProperty(notes = "Selected script types")
+	HashSet<String> scriptTypes;
+
+	@Transient
+	Suite suite;
+
+	boolean updateExecutionList;
+
+	boolean headless;
 
 }

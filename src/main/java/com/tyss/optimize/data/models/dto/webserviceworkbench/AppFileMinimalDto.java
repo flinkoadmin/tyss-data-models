@@ -12,6 +12,9 @@ public class AppFileMinimalDto {
     private String name;
     private Boolean isEnabled = true;
     private Boolean isModified = false;
+    private String type;
+    private String value;
+    private String url;
 
     public AppFileMinimalDto(AppFile appFile) {
         if (appFile != null) {

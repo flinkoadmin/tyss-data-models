@@ -37,6 +37,8 @@ public class ScheduledExecutionDashboard extends BaseEntity {
 	ExecutionDashboard executionDashboard;
 	String executionReferenceId;
 	String executionId;
+	Suite suite;
 	boolean mailSent;
+	boolean reScheduled;
 
 }

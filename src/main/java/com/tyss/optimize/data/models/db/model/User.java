@@ -2,6 +2,7 @@ package com.tyss.optimize.data.models.db.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,6 +15,7 @@ import java.util.List;
 @Data
 @Document(value = "users")
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@NoArgsConstructor
 public class User extends BaseEntity{
 
 	@Transient
@@ -37,12 +39,20 @@ public class User extends BaseEntity{
 	private String otp;
 	private String activationStatus;
 	private String passwordToken;
+	private String tokenExpireDate;
 	private String organisationName;
 	private String jobTitle;
 	private String jobTitleOthers;
 	private String activeToken;
 	private String lastSignInOn;
 	private String lastSignOutOn;
+	private String licenseName;
+	private String branch;
+	private boolean isStudent=false;
 	@Transient
 	private Collection<GrantedAuthority> grantedAuthoritiesList = new ArrayList<>();
+	@Transient
+	private String source;
+	@Transient
+	private String fromPage;
 }

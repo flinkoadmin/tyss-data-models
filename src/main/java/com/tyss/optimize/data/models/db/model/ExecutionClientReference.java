@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
+import com.tyss.optimize.data.models.dto.ExecutionClientDetails;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,5 +19,8 @@ public class ExecutionClientReference {
 	private String status;
 	private String suiteId;
 	private String licenseId;
-	
+	private String executionType;
+	private String clientHostName;
+	private ExecutionClientDetails executionClientDetails;
+	private ClientSystemConfig clientSystemConfig;
 }

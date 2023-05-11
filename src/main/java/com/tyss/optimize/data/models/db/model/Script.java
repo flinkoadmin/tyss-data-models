@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.dto.results.ExecutionEntityResponse;
 
@@ -24,6 +25,7 @@ public class Script extends BaseEntity {
     @Transient
     public static final String SEQUENCE_NAME = "SCRIPT";
 
+    @JsonAlias("_id")
     String id;
     @NotNull(message = "name is mandatory")
     @NotBlank(message = "name must not be blank")
@@ -37,6 +39,8 @@ public class Script extends BaseEntity {
     @Size(max = 200, message = "Description must be 200 characters")
     String desc;
     String type;
+    @NotNull(message = "testCaseType is mandatory")
+    @NotBlank(message = "testCaseType must not be blank")
     String testCaseType;
     String templateId;
     double executionOrder;
@@ -46,7 +50,7 @@ public class Script extends BaseEntity {
     List<String> selectedSystems;
     String delayBetweenSteps;
     List<DependentScript> dependentScript;
-    List<Condition> conditions;
+    List<Conditions> conditions;
     Map<String, String> localVariables;
     List<DataProvider> dataProvider;
     ExecutionEntityResponse scriptResult;

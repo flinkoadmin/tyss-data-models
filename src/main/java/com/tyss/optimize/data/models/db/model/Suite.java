@@ -4,16 +4,21 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.dto.StorageInfo;
 
 import io.swagger.annotations.ApiModelProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import javax.validation.Valid;
 import javax.validation.constraints.*;
 import java.util.List;
 import java.util.Map;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 @Document(value = "suites")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Suite extends BaseEntity{
@@ -42,32 +47,23 @@ public class Suite extends BaseEntity{
 
 	private ExecutionDashboard executionDashboard;
 	//Project Environment Variables
-	@NotBlank(message = "usePeVariableFrom is mandatory")
 	private String usePeVariableFrom;
 	private List<String> projectEnvironmentVariables;
 	private String selectedPESetName;
 	private List<VariableSet> clonedProjectEnvironmentVariables;
 	//Global Variables
-	@NotBlank(message = "useGlobalVariableFrom is mandatory")
 	private String useGlobalVariableFrom;
 	private List<String> globalVariables;
 	private String selectedGVSetName;
 	private List<VariableSet> clonedGlobalVariables;
 	// Test Data
-	@NotBlank(message = "useTestDataFrom is mandatory")
 	private String useTestDataFrom;
 	private List<Object> sourceTestData;
 	private String selectedTDSetName;
 	private List<TestDataSet> clonedTestDataSets;
-	@NotNull(message = "machines is mandatory")
 	private Machines machines;
-	@NotNull(message = "wait time is mandatory")
-	@Valid
 	private WaitTime waitTime;
-	@NotNull(message = "result setting is mandatory")
 	private ResultSetting resultSetting;
-	@NotNull(message = "execution termination is mandatory")
-	@Valid
 	private ExecutionTermination executionTermination;
 	@NotNull(message = "email data is mandatory")
 	private EmailData emailData;

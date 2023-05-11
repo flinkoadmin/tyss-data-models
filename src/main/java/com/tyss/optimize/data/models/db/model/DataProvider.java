@@ -41,6 +41,7 @@ public class DataProvider extends BaseEntity {
     List<SheetData> sheetdata;
     List<Variable> variables;
     String excelSheetData;
+    String url;
 
 
 }

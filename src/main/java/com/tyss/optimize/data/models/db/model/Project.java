@@ -38,6 +38,8 @@ public class Project extends BaseEntity {
     @NotNull(message = "type is mandatory")
     String type;
     String defaultTemplateId;
+    String defaultDefectTemplateId;
+    String defaultDefectLifecycleTemplateId;
     String status = ProjectStatusTypes.STATUS_OPEN;
     String platform;
     String url;
@@ -53,5 +55,5 @@ public class Project extends BaseEntity {
     String port;
     String baseUri;
     Long numberOfUsers;
-
+    List<DefectEmailConfig> lifeCycleTemplateToEmail;
 }

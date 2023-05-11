@@ -4,13 +4,19 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.db.model.BaseEntity;
 import com.tyss.optimize.data.models.dto.SelectedSystem;
 import com.tyss.optimize.data.models.dto.StorageInfo;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 import java.util.Map;
 
 @Data
+@Document(value = "ExecutionEntityResponse")
+@Builder
+@AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @NoArgsConstructor
 public class ExecutionEntityResponse extends BaseEntity {
@@ -53,5 +59,6 @@ public class ExecutionEntityResponse extends BaseEntity {
     private String stepId;
     public String executionId;
     private StorageInfo storageDetails;
+    private String entityId;
     //public Integer noOfExecutionEntityResponses;
 }

@@ -20,7 +20,7 @@ import java.security.Key;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 
-@Component
+@Component("secureUtilOld")
 @Slf4j
 public class SecureUtil {
 

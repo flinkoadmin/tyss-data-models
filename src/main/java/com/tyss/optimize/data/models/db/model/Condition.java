@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.dto.ReferenceDetails;
 
@@ -21,6 +22,7 @@ public class Condition extends BaseEntity {
     @Transient
     public static final String SEQUENCE_NAME = "PRE_POST_CONDITION";
 
+    @JsonAlias("_id")
     @ApiModelProperty(notes = "The Condition Id")
     String id, key;
 

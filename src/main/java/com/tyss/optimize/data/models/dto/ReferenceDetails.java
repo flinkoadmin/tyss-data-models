@@ -18,4 +18,5 @@ public class ReferenceDetails {
 	@ApiModelProperty(notes = "Local/Global")
 	public String type;
 	public String value;
+	public String referenceId;
 }

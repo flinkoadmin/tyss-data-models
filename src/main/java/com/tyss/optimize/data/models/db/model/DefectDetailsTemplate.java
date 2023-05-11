@@ -35,5 +35,6 @@ public class DefectDetailsTemplate extends BaseEntity {
     @Pattern(regexp = "^[a-zA-Z0-9\\s-_]+$")
     String name;
     String projectId;
-    List<Map<String, Object>> testCaseDetails;
+    String templateType;
+    List<Map<String, Object>> defectDetails;
 }

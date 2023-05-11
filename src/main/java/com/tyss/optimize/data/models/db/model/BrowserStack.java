@@ -29,7 +29,7 @@ public class BrowserStack extends BaseEntity {
     @Size(max = 100,min=2,message = "Instance Name must be 2 and 100 character")
     @NotNull(message = "Instance Name is mandatory")
     @NotBlank(message = "Instance Name must not be blank")
-    @Pattern(regexp = "^[a-zA-Z0-9]+(?:[\\w -]*[a-zA-Z0-9]+)*$", message = "Invalid instance name naming pattern")
+    @Pattern(regexp = "^[a-zA-Z0-9_]+(?:[\\w -]*[a-zA-Z0-9_]+)*$", message = "Invalid instance name naming pattern")
     private String instanceName;
 
     @NotNull(message = "Username is mandatory")

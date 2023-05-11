@@ -15,4 +15,5 @@ public class ResponseDTO {
     private String message;
     private String status;
     private Map<String,Object> responseMap;
+
 }

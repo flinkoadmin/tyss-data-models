@@ -17,6 +17,7 @@ public class ApiResponseDto {
     private String description;
     private String method;
     private Object requestBody;
+    private String bodyType;
     private List<NameValueDto> queryParams;
     private List<NameValueDto>  headers;
     private String authType;

@@ -1,6 +1,8 @@
 package com.tyss.optimize.data.models.dto.storage;
 
 
+import com.amazonaws.HttpMethod;
+import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -11,10 +13,12 @@ import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
 import com.tyss.optimize.common.util.CommonConstants;
 import com.tyss.optimize.common.util.MimeTypeUtils;
+import com.tyss.optimize.data.models.db.model.License;
 import com.tyss.optimize.data.models.dto.FileMapperDTO;
 import com.tyss.optimize.data.models.dto.ResponseDTO;
 import com.tyss.optimize.data.models.dto.StorageInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
@@ -25,17 +29,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.time.Duration;
+import java.util.*;
 
 @Component("cloudS3")
 @Slf4j
@@ -44,13 +53,21 @@ public class CloudS3StorageManager implements StorageManager {
     private AmazonS3 s3Client = null;
 
     private S3Client s3 = null;
+    
+    private S3Presigner s3Presigner = null;
 
     @Autowired
     StorageConfigService storageConfigService;
 
     @Override
     public void createObjectAndSave(StorageInfo storageInfo, List<MultipartFile> file) throws AmazonS3Exception, IOException {
-        createConnectionForS3();
+        try{
+            createConnectionForS3();
+        } catch (Exception e){
+            License license = new License();
+            license.setId(storageInfo.getLicenseId());
+            createConnectionForS3(license);
+        }
         for (MultipartFile multipartFile : file) {
             ObjectMetadata metadata = new ObjectMetadata();
             metadata.setContentType(multipartFile.getContentType());
@@ -129,6 +146,44 @@ public class CloudS3StorageManager implements StorageManager {
     }
 
 
+    public boolean offlineDeleteObject(StorageInfo storageInfo, License license) {
+        createConnectionForS3(license);
+        if (s3Client.doesBucketExist(storageInfo.getBucketName())) {
+            if (storageInfo.getFilePath() != null) {
+                storageInfo.getFilePath().parallelStream().forEach(path ->
+                {
+                    try {
+                        ObjectListing listing = s3Client.listObjects(storageInfo.getBucketName(), path);
+                        DeleteObjectsRequest req = new DeleteObjectsRequest(storageInfo.getBucketName());
+                        List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<>(listing.getObjectSummaries().size());
+                        for (S3ObjectSummary summary : listing.getObjectSummaries()) {
+                            keys.add(new DeleteObjectsRequest.KeyVersion(summary.getKey()));
+                        }
+                        req.withKeys(keys);
+                        s3Client.deleteObjects(req);
+                        storageInfo.setStatus(true);
+                    } catch (AmazonS3Exception e) {
+                        log.error("File doesn't exists " + e);
+                    }
+                });
+            }
+        }
+        return storageInfo.isStatus();
+    }
+
+
+    public boolean checkIfObjectExistsInOffline(StorageInfo storageInfo, License license) throws Exception {
+        createConnectionForS3(license);
+        String path = storageInfo.getFilePath().get(0);
+        return s3Client.doesObjectExist(storageInfo.getBucketName(), path);
+    }
+
+    @Override
+    public List<String> getAllFilePath(String baseFilePath, String wildcard) throws Exception {
+        throw new UnsupportedOperationException("This operation is not supported");
+    }
+
+
     @Override
     public InputStream getObjectStream(StorageInfo storageInfo, String filePath) {
         createConnectionForS3();
@@ -137,7 +192,6 @@ public class CloudS3StorageManager implements StorageManager {
             S3Object s3object = s3Client.getObject(storageInfo.getBucketName(), filePath);
             return s3object.getObjectContent();
         } catch (Exception e) {
-            System.out.println(inputStream);
             log.error("Something went wrong");
             return inputStream;
         }
@@ -145,7 +199,13 @@ public class CloudS3StorageManager implements StorageManager {
 
     @Override
     public InputStream getObject(StorageInfo storageInfo, String filePath) {
-        createConnectionForS3();
+        try{
+            createConnectionForS3();
+        } catch (Exception e){
+            License license = new License();
+            license.setId(storageInfo.getLicenseId());
+            createConnectionForS3(license);
+        }
         S3Object s3object = s3Client.getObject(storageInfo.getInputs().getBucketName(), filePath);
         InputStream inputStream = s3object.getObjectContent();
         return inputStream;
@@ -216,6 +276,43 @@ public class CloudS3StorageManager implements StorageManager {
         }
         return storageInfo.isStatus();
     }
+    @Override
+    public boolean copyFile(String sourceBucket, String sourceFilePath, String destinationBucket, String destinationFilePath, boolean createConnection) {
+        try {
+            log.info("Copying the file in S3");
+            if (createConnection) {
+                createConnectionForS3();
+            }
+            CopyObjectRequest copyObjRequest = new CopyObjectRequest(sourceBucket, sourceFilePath, destinationBucket, destinationFilePath);
+            s3Client.copyObject(copyObjRequest);
+            return true;
+        } catch (SdkClientException ex) {
+            log.error("Exception while copying object in S3", ex);
+        }
+        return false;
+    }
+	
+    @Override
+    public boolean copyAll(String sourceBucket, String sourceFolderPath, String destinationBucket, String destinationFolderPath) {
+        log.info("Copying the files recursively in S3");
+        try {
+            createConnectionForS3();
+            ListObjectsRequest request = new ListObjectsRequest().withBucketName(sourceBucket)
+                    .withPrefix(sourceFolderPath);
+            ObjectListing response = s3Client.listObjects(request);
+            do {
+                for (S3ObjectSummary objectSummary : response.getObjectSummaries()) {
+                    CopyObjectRequest copyObjRequest = new CopyObjectRequest(sourceBucket, objectSummary.getKey(), destinationBucket, objectSummary.getKey().replace(sourceFolderPath, destinationFolderPath));
+                    s3Client.copyObject(copyObjRequest);
+                }
+                response = s3Client.listNextBatchOfObjects(response);
+            } while (response.isTruncated());
+            return true;
+        } catch (AmazonS3Exception e) {
+            log.error("Exception while copying the files in S3", e);
+        }
+        return false;
+    }
 
     private void saveFiles(StorageInfo storageInfo, String fileName, S3ObjectSummary summary) throws IOException {
         if (storageInfo.getDestPath() != null) {
@@ -230,20 +327,22 @@ public class CloudS3StorageManager implements StorageManager {
         createConnectionForS3();
         if (s3Client.doesBucketExist(storageInfo.getBucketName())) {
             if (storageInfo.getFilePath() != null) {
-                storageInfo.getFilePath().parallelStream().forEach(path ->
+                storageInfo.getFilePath().stream().forEach(path ->
                 {
-                    try {
-                        ObjectListing listing = s3Client.listObjects(storageInfo.getBucketName(), path);
-                        DeleteObjectsRequest req = new DeleteObjectsRequest(storageInfo.getBucketName());
-                        List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<>(listing.getObjectSummaries().size());
-                        for (S3ObjectSummary summary : listing.getObjectSummaries()) {
-                            keys.add(new DeleteObjectsRequest.KeyVersion(summary.getKey()));
+                    if(Objects.nonNull(path)){
+                        try {
+                            ObjectListing listing = s3Client.listObjects(storageInfo.getBucketName(), path);
+                            DeleteObjectsRequest req = new DeleteObjectsRequest(storageInfo.getBucketName());
+                            List<DeleteObjectsRequest.KeyVersion> keys = new ArrayList<>(listing.getObjectSummaries().size());
+                            for (S3ObjectSummary summary : listing.getObjectSummaries()) {
+                                keys.add(new DeleteObjectsRequest.KeyVersion(summary.getKey()));
+                            }
+                            req.withKeys(keys);
+                            s3Client.deleteObjects(req);
+                            storageInfo.setStatus(true);
+                        } catch (AmazonS3Exception e) {
+                            log.error("File doesn't exists " + e);
                         }
-                        req.withKeys(keys);
-                        s3Client.deleteObjects(req);
-                        storageInfo.setStatus(true);
-                    } catch (AmazonS3Exception e) {
-                        log.error("File doesn't exists " + e);
                     }
                 });
             }
@@ -253,7 +352,13 @@ public class CloudS3StorageManager implements StorageManager {
 
     @Override
     public boolean checkIfObjectExist(StorageInfo storageInfo) {
-        createConnectionForS3();
+        try{
+            createConnectionForS3();
+        } catch (Exception e){
+            License license = new License();
+            license.setId(storageInfo.getLicenseId());
+            createConnectionForS3(license);
+        }
         String path = storageInfo.getFilePath().get(0);
         return s3Client.doesObjectExist(storageInfo.getBucketName(), path);
     }
@@ -265,9 +370,25 @@ public class CloudS3StorageManager implements StorageManager {
     }
 
     @Override
-    public long getFileSizeOfS3(StorageInfo storageInfo) {
+    public long getFileSize(StorageInfo storageInfo) {
         createConnectionForS3();
         return s3Client.getObjectMetadata(storageInfo.getBucketName(), storageInfo.getFilePath().get(0)).getContentLength();
+    }
+
+    @Override
+    public long getFolderSize(StorageInfo storageInfo) {
+        createConnectionForS3();
+        long totalSize = 0;
+        ListObjectsRequest request = new ListObjectsRequest().withBucketName(storageInfo.getBucketName())
+                .withPrefix(storageInfo.getFilePath().get(0));
+        ObjectListing response = s3Client.listObjects(request);
+        do {
+            for (S3ObjectSummary objectSummary : response.getObjectSummaries()) {
+                totalSize += objectSummary.getSize();
+            }
+            response = s3Client.listNextBatchOfObjects(response);
+        } while (response.isTruncated());
+        return totalSize;
     }
 
     private void createConnectionForS3() {
@@ -275,6 +396,53 @@ public class CloudS3StorageManager implements StorageManager {
         StorageConfig storageConfig = null;
         try {
             storageConfig = storageConfigService.getStorageConfig();
+        } catch (Exception e) {
+            log.error("Unable to retrieve data from StorageConfig " + e);
+        }
+        AWSCredentials credentials = new BasicAWSCredentials(storageConfig.getAccessKey(), storageConfig.getSecretKey());
+        s3Client = AmazonS3ClientBuilder
+                .standard()
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .withRegion(Regions.AP_SOUTH_1)
+                .build();
+        log.info("Connection Established");
+    }
+
+    private void createConnectionForS3V3() {
+        log.info("Establishing Connection V3");
+        StorageConfig storageConfig;
+        AwsCredentialsProvider credentialsProvider = null;
+        try {
+            storageConfig = storageConfigService.getStorageConfig();
+            final String accessKey = storageConfig.getAccessKey();
+            final String secretKey = storageConfig.getSecretKey();
+            credentialsProvider = () -> new AwsCredentials() {
+                @Override
+                public String accessKeyId() {
+                    return accessKey;
+                }
+
+                @Override
+                public String secretAccessKey() {
+                    return secretKey;
+                }
+            };
+        } catch (Exception e) {
+            log.error("Unable to retrieve data from StorageConfig V3" + e);
+        }
+         s3Presigner = S3Presigner.builder()
+                .region(Region.AP_SOUTH_1)
+                .credentialsProvider(credentialsProvider)
+                .build();
+
+        log.info("Connection Established V3");
+    }
+
+    private void createConnectionForS3(License license) {
+        log.info("Establishing Connection");
+        StorageConfig storageConfig = null;
+        try {
+            storageConfig = storageConfigService.getStorageConfig(license);
         } catch (Exception e) {
             log.error("Unable to retrieve data from StorageConfig " + e);
         }
@@ -304,4 +472,32 @@ public class CloudS3StorageManager implements StorageManager {
         log.info("Connection Established");
     }
 
+    @Override
+    public String generateTemporaryUrlForDownload(String bucketName, String path, int expiryTimeInMillis) {
+        createConnectionForS3();
+        Date expiryDate = DateUtils.addMilliseconds(new Date(), expiryTimeInMillis);
+        GeneratePresignedUrlRequest generatePresignedUrlRequest =
+                new GeneratePresignedUrlRequest(bucketName, path)
+                        .withMethod(HttpMethod.GET)
+                        .withExpiration(expiryDate);
+        URL url = s3Client.generatePresignedUrl(generatePresignedUrlRequest);
+        return url.toString();
+
+    }
+    @Override
+    public String generateTemporaryUrlForUpload(String bucketName, String path, int expiryTimeInMillis) {
+        createConnectionForS3V3();
+        software.amazon.awssdk.services.s3.model.PutObjectRequest objectRequest = software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(path)
+                .contentType(MimeTypeUtils.getContentTypeByFileName(path))
+                .build();
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMillis(expiryTimeInMillis))
+                .putObjectRequest(objectRequest)
+                .build();
+        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+        URL url = presignedRequest.url();
+        return url.toString();
+    }
 }

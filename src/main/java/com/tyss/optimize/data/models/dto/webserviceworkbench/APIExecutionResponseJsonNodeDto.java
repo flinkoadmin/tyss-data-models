@@ -9,27 +9,35 @@ import lombok.Data;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class APIExecutionResponseJsonNodeDto {
 
     private int statusCode;
+    private String statusCodeValue;
     private List<NameValueDto> headers;
     //Map<String,String> headers;
     private Map<String,Object> metaData = new HashMap<>();
-    private JsonNode responseBody;
+    private Object responseBody;
     public APIExecutionResponseJsonNodeDto(APIExecutionResponseDto apiExecutionResponseDto){
         ObjectMapper mapper = new ObjectMapper();
         try {
-            JsonNode jsonNode = mapper.readTree(apiExecutionResponseDto.getResponseBody());
-            this.responseBody= jsonNode;
+            boolean isJsonContent = (Objects.nonNull(apiExecutionResponseDto.getHeaders())) ? apiExecutionResponseDto.getHeaders().stream().anyMatch(header->header.getName().equalsIgnoreCase("Content-Type") && header.getValue().contains("application/json")) : false;
+            if (isJsonContent) {
+                this.responseBody = mapper.readTree(apiExecutionResponseDto.getResponseBody());
+            } else {
+                this.responseBody = apiExecutionResponseDto.getResponseBody();
+            }
         } catch (JsonProcessingException e) {
+            this.responseBody= apiExecutionResponseDto.getResponseBody();
             e.printStackTrace();
         }
         this.headers= apiExecutionResponseDto.getHeaders();
         this.metaData=apiExecutionResponseDto.getMetaData();
         this.statusCode=apiExecutionResponseDto.getStatusCode();
+        this.statusCodeValue=apiExecutionResponseDto.getStatusCodeValue();
     }
 }
 

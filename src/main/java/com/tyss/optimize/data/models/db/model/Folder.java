@@ -1,8 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.tyss.optimize.data.models.db.model.BaseEntity;
-import com.tyss.optimize.data.models.db.model.StepGroup;
 import com.tyss.optimize.data.models.dto.FileDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,8 +27,7 @@ public class Folder extends BaseEntity {
 	
 	@Id
     public String id;
-	@Size(min = 3, max = 25, message
-			= "name must be between 3 and 25 characters")
+	@Size(min = 2, message = "Name must have 2 or more characters")
 	@NotNull(message = "name is mandatory")
 	@NotBlank(message = "name must not be blank")
 	String name;
@@ -45,4 +42,5 @@ public class Folder extends BaseEntity {
 	double executionOrder;
 	boolean defaultFolder=false;
 	List<FileDTO> fileDTOList;
+	List<AppFile> appFiles;
 }

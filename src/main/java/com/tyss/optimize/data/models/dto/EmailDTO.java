@@ -36,6 +36,8 @@ public class EmailDTO extends BaseEntity {
 
     private String type;
 
+    private String section;
+
     private Map<String, Object> valueMap;
 
     @Transient

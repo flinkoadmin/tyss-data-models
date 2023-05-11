@@ -1,14 +1,14 @@
 package com.tyss.optimize.data.models.db.model;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.dto.Execution;
 import com.tyss.optimize.data.models.dto.ResponseDTO;
-
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -106,5 +106,28 @@ public class ExecutionDashboard extends BaseEntity {
 
 	@ApiModelProperty(notes = "Parallel/Distribution/Sequential")
 	String suiteExecutionRunType;
+
+	@ApiModelProperty(notes = "Parallel/Distribution/Sequential")
+	String manualSuiteExecutionRunType;
+
+	@ApiModelProperty(notes = "Selected script types")
+	HashSet<String> scriptTypes;
+
+	@ApiModelProperty(notes = "Client Status")
+	Map<String, ClientStatus> clientStatus;
+
+	String payloadReference;
+
+	String objectId;
+
+	boolean headless;
+
+	private int licenseParallelRuns;
+
+	private String requestFormed;
+
+	boolean screenShotsDeleted;
+
+	String currentStatus;
 
 }

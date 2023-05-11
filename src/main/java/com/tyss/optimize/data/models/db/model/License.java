@@ -26,6 +26,7 @@ public class License extends BaseEntity{
 	private String licensePlanId;
 	private String licensePlan;
 	private String licenseType;
+	private String licenseTypeDisplay;
 	private Integer numberOfMachines;
 	private Integer numberOfUsers;
 	private String purchasedMemory;
@@ -41,6 +42,7 @@ public class License extends BaseEntity{
 	private List<LicenseUser> licenseUsers;
 	private String numberOfParallelRuns;
 	private String storage;
+	private String storageUnit;
 	private String licenseName;
 	private String licenseOwner;
 	private String privilege;
@@ -54,4 +56,7 @@ public class License extends BaseEntity{
 	private String costPerRun;
 	private String costPerStorage;
 	private FutureLicensePlan futureLicensePlan;
+	private String branch;
+	private String registeredFrom;
+	private List<LicenseHistory> history;
 }

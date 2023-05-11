@@ -6,6 +6,7 @@ import com.tyss.optimize.data.models.dto.ScriptDetails;
 import org.springframework.stereotype.Component;
 
 @Component
+@Deprecated
 public class AndroidDriver implements IDriver {
 
     private io.appium.java_client.android.AndroidDriver androidDriver;

@@ -19,5 +19,6 @@ public class Machines {
     private List<Distribution> distribution;
     @NotNull(message = "Selected machines is mandatory")
     List<SelectedSystem> selectedMachines;
+    private String userExecutionType;
     private String totalEstimatedDuration;
 }

@@ -24,10 +24,9 @@ public class StepGroup extends BaseEntity {
 
     String id;
 
+    @Size(min = 2, message = "Name must have 2 or more characters")
     @NotNull(message = "name is mandatory")
     @NotBlank(message = "name must not be blank")
-    @Size(min = 3, max = 100, message
-            = "Name must be between 3 and 100 characters")
     String name;
     @NotNull(message = "type is mandatory")
     String type;
@@ -40,11 +39,12 @@ public class StepGroup extends BaseEntity {
     Map<String,String> localVariables;
     Map<String, Object> stepGroupVariables;
     ReferenceDetails stepGroupReferenceInfo;
+    List<Variable> variables;
     int stepCount;
     private boolean folder;
-    @Size(max =110,message = "passMessage must be 110 characters")
+    @Size(min = 2, message = "passMessage must have 2 or more characters")
     String passMessage;
-    @Size(max =110,message = "failMessage must be 110 characters")
+    @Size(min = 2, message = "failMessage must have 2 or more characters")
     String failMessage;
     List<Parameter> parameters;
     @NotNull(message = "returnType is mandatory")
@@ -52,4 +52,5 @@ public class StepGroup extends BaseEntity {
     String toolTip;
     boolean defaultStepGroup=false;
     String displayName;
+    int hierarchy;
 }

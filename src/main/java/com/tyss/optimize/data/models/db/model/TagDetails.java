@@ -38,4 +38,6 @@ public class TagDetails extends BaseEntity{
     @Transient
     private String action;
     private String stepId;
+    @Transient
+    private String key;
 }

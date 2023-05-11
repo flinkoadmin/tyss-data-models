@@ -7,6 +7,9 @@ import org.springframework.data.annotation.Id;
 import java.util.Date;
 import java.util.List;
 
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class LicenseDetails {
@@ -20,6 +23,8 @@ public class LicenseDetails {
     private String licenseStatus;
     private String billingCycle;
     private String numberOfParallelRuns;
+    @NotNull(message = "Storage should not be null")
+    @NotEmpty(message = "Storage should not be empty")
     private String storage;
     private String licenseOwner;
     private PaymentDetails paymentDetails;

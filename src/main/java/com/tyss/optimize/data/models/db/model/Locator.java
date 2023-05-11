@@ -3,10 +3,7 @@ package com.tyss.optimize.data.models.db.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tyss.optimize.data.models.dto.LocatorStatus;
 import io.swagger.annotations.ApiModelProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -15,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@EqualsAndHashCode
 public class Locator {
 
     @ApiModelProperty(notes = "The value of Locator")
@@ -44,4 +42,5 @@ public class Locator {
     private String dynamicInputValue;
     boolean defaultAddedFirst;
     boolean defaultAddedSecond;
+
 }

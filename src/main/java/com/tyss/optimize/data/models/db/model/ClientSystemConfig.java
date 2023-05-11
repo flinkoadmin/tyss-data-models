@@ -1,6 +1,7 @@
 package com.tyss.optimize.data.models.db.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.tyss.optimize.common.util.CommonConstants;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -46,5 +47,10 @@ public class ClientSystemConfig extends BaseEntity {
 	private Boolean isDriversNotMatched;
 	private Boolean isDriverSyncFirstTimeSuccessfully;
 	private String driverVersion;
-
+	private String executionId;
+	private String executionType;
+	private String action;
+	private ClientStatus clientStatus;
+	private Boolean headless;
+	private String uuidType;
 }

@@ -2,6 +2,7 @@ package com.tyss.optimize.data.models.db.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
@@ -27,6 +28,7 @@ public class Module extends BaseEntity{
     public static final String SEQUENCE_NAME = "MODULE";
 
 	@Id
+	@JsonAlias("_id")
     public String id;
 
 	@NotNull(message = "name is mandatory")
@@ -38,7 +40,7 @@ public class Module extends BaseEntity{
 
 	double executionOrder;
 	List<Script> scripts;
-	List<Condition> conditions;
+	List<Conditions> conditions;
 	int subModuleCount;
 	int hierarchy;
 	int scriptCount;

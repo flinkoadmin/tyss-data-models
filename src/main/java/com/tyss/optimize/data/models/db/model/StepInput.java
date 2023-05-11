@@ -33,4 +33,5 @@ public class StepInput extends BaseEntity{
 	public String actualValue;
 	@ApiModelProperty(notes = "The StepInput/Parameter actual Label")
 	public String label;
+	public String url;
 }

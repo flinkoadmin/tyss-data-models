@@ -67,12 +67,12 @@ public class BaseEntity {
     }
 
 
-    public String retrieveCreatedDate(){
-        return createdOn;
+    public String unFormattedCreatedDate(){
+        return this.createdOn;
     }
 
-    public String retrieveModifiedDate(){
-        return modifiedOn;
+    public String unFormattedModifiedDate(){
+        return this.modifiedOn;
     }
 
 

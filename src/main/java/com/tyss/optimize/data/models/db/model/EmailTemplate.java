@@ -34,4 +34,6 @@ public class EmailTemplate extends BaseEntity{
     String subject;
 
     String isActive;
+    @NotNull
+    String expirationInHrs;
 }

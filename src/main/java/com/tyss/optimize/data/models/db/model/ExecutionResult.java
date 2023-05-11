@@ -29,4 +29,7 @@ public class ExecutionResult {
 	
 	@ApiModelProperty(notes = "execution id of latest run")
 	private String executionId;
+
+	@ApiModelProperty(notes = "Selected Machines")
+	private Machines machines;
 }

@@ -11,6 +11,7 @@ public class Payment {
     private double totalCostForNumberOfParallelRuns;
     private double totalCostForStorage;
     private double balance;
+    private double paidForDays;
     private double upgradeCharges;
     private double netTotal;
     private double tax;

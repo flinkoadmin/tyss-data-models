@@ -66,6 +66,8 @@ public class ExecutionEntity extends BaseEntity {
 	public ExecutionStatistics stepResultStats, scriptStats, moduleStats;
 	public List<ExecutionStatistics>  platformStatistics;
 	public SelectedSystem selectedSystem;
-	public List<Map> testCase;
+	public Object testCaseType;
 	public String status;
+	public String executedOn;
+	public Map<String, Object> manualTestCase;
 }

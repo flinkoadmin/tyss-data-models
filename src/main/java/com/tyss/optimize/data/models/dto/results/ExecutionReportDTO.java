@@ -17,7 +17,6 @@ public class ExecutionReportDTO {
     public String executionID;
     public String suiteName;
     public String status;
-
     public String duration;
     public String executedOn;
     public String executionType;
@@ -29,11 +28,10 @@ public class ExecutionReportDTO {
     public String os;
     public String browser;
     public String device;
+    public String deviceOs;
     public String machine;
     public String executionEnvironment;
+    public String suiteType;
+    public String machineUser;
     public List<ExecutionReportData> executionReportData;
-
-
-
-
 }

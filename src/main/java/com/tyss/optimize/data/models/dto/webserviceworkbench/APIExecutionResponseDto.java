@@ -15,6 +15,7 @@ public class APIExecutionResponseDto {
     private String id;
     private boolean isSuccess;
     private int statusCode;
+    private String statusCodeValue;
     private List<NameValueDto> headers;
     //Map<String,String> headers;
     private Map<String,Object> metaData = new HashMap<>();
@@ -23,5 +24,5 @@ public class APIExecutionResponseDto {
     private StepResultDto postStepResult;
     List<AssertionResultDto> responseAssertionResults;
     private AssertionResult assertionResult;
-    private Map<String, AssignVariableValueDto> updatedVariables;
+    private List<AssignVariableValueDto> updatedVariables;
 }

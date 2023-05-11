@@ -3,6 +3,7 @@ package com.tyss.optimize.data.models.db.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import org.json.simple.JSONObject;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
@@ -49,5 +50,11 @@ public class Variable extends BaseEntity{
 	private String versionNumber;
 	private String lastSync;
 	Boolean isSystemVariable = false;
-
+	private String variableId;
+	private List<String> users = new ArrayList<>();
+	private List<String> excludeUsers = new ArrayList<>();
+	private List<JSONObject> deleteUsers = new ArrayList<>();
+	private boolean activeStatus;
+	private String version;
+	private boolean updatedStatus;
 }

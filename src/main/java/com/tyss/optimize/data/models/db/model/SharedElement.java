@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.json.simple.JSONObject;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -34,9 +35,9 @@ public class SharedElement extends BaseEntity {
     @ApiModelProperty(notes = "The Element Id")
     @Id
     private String id;
+    @Size(min = 2, message = "Name must have 2 or more characters")
     @NotNull(message = "name is mandatory")
     @NotBlank(message = "name must not be blank")
-    @Size(max=100,min=2,message="Name must be between 2 and 100 characters, criteria not met")
     private String name;
     private String desc;
     @NotNull(message = "type is mandatory")
@@ -62,5 +63,11 @@ public class SharedElement extends BaseEntity {
     private boolean commit=false;
     private boolean publish=false;
     private boolean newState = false;
-
+    private String elementId;
+    private List<String> users;
+    private List<String> excludeUsers;
+    private List<JSONObject> deleteUsers;
+    private boolean activeStatus;
+    private String version;
+    private boolean updatedStatus;
 }

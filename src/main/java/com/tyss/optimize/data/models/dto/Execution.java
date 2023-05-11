@@ -12,15 +12,21 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Document(value = "execution_request")
 @Builder
 public class Execution extends BaseEntity {
+
+    public static final String SEQUENCE_NAME = "EXECUTION_REQUEST";
+    public String id;
     @ApiModelProperty(notes = "The Execution Id")
-    public String executionId;    @ApiModelProperty(notes = "The Project Name")
+    public String executionId;
+    @ApiModelProperty(notes = "The Project Name")
     public String projectName;
     @ApiModelProperty(notes = "The Project Id")
     public String projectId;
@@ -73,7 +79,12 @@ public class Execution extends BaseEntity {
     private Map<String, Map<String, Object>> capabilities;
     private Boolean isDriverSyncFirstTimeSuccessfully = false;
     private Boolean messageSent;
+    private Boolean statusCheck = false;
     private Map<String, Locator> elementDetails;
     private String userId;
+    private String manualUser;
+    private boolean headless = false;
+    String payloadReference;
+    String objectId;
 }
 

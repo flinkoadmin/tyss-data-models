@@ -13,6 +13,7 @@ public class FutureLicensePlan {
     private String billingCycle;
     private String numberOfParallelRuns;
     private String storage;
+    private String storageUnit;
     private String netTotal;
     private String tax;
     private String grandTotal;

@@ -1,87 +1,103 @@
 package com.tyss.optimize.data.models.dto;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.util.*;
+import java.util.stream.IntStream;
+
 import com.tyss.optimize.data.models.db.model.DataProvider;
 import com.tyss.optimize.data.models.db.model.StepInput;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
+
 
 @NoArgsConstructor
 @Data
+@Slf4j
 public class ScriptDetails {
 
-	IDriver driver;
-	WebDriver webDriver;
-	AndroidDriver androidDriver;
-	IOSDriver iosDriver;
-	
-	List<StepInput> conditionInput = new ArrayList<StepInput>();
+	@Deprecated
+	private IDriver driver;
+	private WebDriver webDriver;
+	private AndroidDriver androidDriver;
+	private IOSDriver iosDriver;
 
-	List<StepInput> parentConditionInput = new ArrayList<>();
+	private List<StepInput> conditionInput = new ArrayList<>();
 
-	Map<String, String> localVariables = new HashMap<String, String>();
+	private List<StepInput> parentConditionInput = new ArrayList<>();
 
-	Map<String, Object> stepGroupVariables = new HashMap<String, Object>();
-	
-	List<Map<String, String>> logicalCondition = new ArrayList<Map<String, String>>();
-	
-	Boolean executeLogicalCondition = false;
+	private Map<String, String> localVariables = new HashMap<>();
 
-	Boolean checkIncluded = false;
-	
-	Map<String, Integer> loopAttributes = new HashMap<String, Integer>();
-	
-	Integer numberOfIterations = 0;
-	
-	List<DataProvider> dataProvider = new ArrayList<DataProvider>();
-	
-	List<DataProvider> dataProviderInfo = new ArrayList<DataProvider>();
-	
-	Boolean stopExecution=false;
+	private Map<String, Object> stepGroupVariables = new HashMap<>();
 
-	Boolean skipIteration=false;
-	
-	Boolean terminateAllIteration=false;
-	Boolean terminateModule=false;
-	Boolean terminateExecution=false;
-	Boolean stopStepGroupExecution=false;
-	Boolean stopDependantExecution=false;
-	Map<String, ArrayList> dataProviderList = new HashMap<String, ArrayList>();
-	String logicalStatus = null;
-	//String systemId = "";
-	//String deviceSerialNo = "";
-	Map<String, Object> nlpResponseAttributes = new HashMap<String, Object>();
-	String scriptStatus = "PASS";
-	String moduleId;
-	public String androidDeviceSerialNo;
-	public String iosDeviceSerialNo;
-	List<String> systemPort = Arrays.asList("8201", "8202", "8203", "8204" , "8205", "8206", "8207", "8208", "8209", "8210");
+	private Map<String, Object> parentStepGroupVariables = new HashMap<>();
+
+	private Map<String, String> projectEnvironmentVariables = new HashMap<>();
+
+	private Map<String, String> globalVariables = new HashMap<>();
+
+	private List<Map<String, String>> logicalCondition = new ArrayList<>();
+
+	private Boolean executeLogicalCondition = false;
+
+	private Boolean checkIncluded = false;
+
+	private Map<String, Integer> loopAttributes = new HashMap<>();
+
+	private Integer numberOfIterations = 0;
+
+	private List<DataProvider> dataProvider = new ArrayList<>();
+
+	private List<DataProvider> dataProviderInfo = new ArrayList<>();
+
+	private Boolean stopExecution=false;
+
+	private Boolean skipIteration=false;
+
+	private Boolean terminateAllIteration=false;
+	private Boolean terminateModule=false;
+	private Boolean terminateExecution=false;
+	private Boolean stopStepGroupExecution=false;
+	private Boolean stopDependantExecution=false;
+	private Map<String, ArrayList> dataProviderList = new HashMap<>();
+	private String logicalStatus = null;
+
+	private Map<String, Object> nlpResponseAttributes = new HashMap<>();
+	private String scriptStatus = "PASS";
+	private String moduleId;
+	private  String androidDeviceSerialNo;
+	private  String iosDeviceSerialNo;
+	private List<String> systemPort = new ArrayList<>();
+	private  Integer selectedSystemPort;
 
 	public void resetVariables(){
-		 driver=null;
-		 webDriver=null;
-		 androidDriver=null;
-		 iosDriver=null;
-		 conditionInput = new ArrayList<StepInput>();
-		 localVariables = new HashMap<String, String>();
-		 stepGroupVariables = new HashMap<String, Object>();
-		 logicalCondition = new ArrayList<Map<String, String>>();
-		 executeLogicalCondition = false;
-		 loopAttributes = new HashMap<String, Integer>();
-		 numberOfIterations = 0;
-		 dataProvider = new ArrayList<DataProvider>();
-		 dataProviderInfo = new ArrayList<DataProvider>();
-		 dataProviderList = new HashMap<String, ArrayList>();
-		 //systemId = "";
-		 // deviceSerialNo = "";
-		 nlpResponseAttributes = new HashMap<String, Object>();
-		 scriptStatus = "PASS";
-		 logicalStatus = null;
-		 String androidDeviceSerialNo=null;
-		 String iosDeviceSerialNo=null;
+		driver=null;
+		webDriver=null;
+		androidDriver=null;
+		iosDriver=null;
+		conditionInput = new ArrayList<>();
+		localVariables = new HashMap<>();
+		stepGroupVariables = new HashMap<>();
+		logicalCondition = new ArrayList<>();
+		executeLogicalCondition = false;
+		loopAttributes = new HashMap<>();
+		numberOfIterations = 0;
+		dataProvider = new ArrayList<>();
+		dataProviderInfo = new ArrayList<>();
+		dataProviderList = new HashMap<>();
+		nlpResponseAttributes = new HashMap<>();
+		scriptStatus = "PASS";
+		logicalStatus = null;
+		androidDeviceSerialNo=null;
+		iosDeviceSerialNo=null;
 	}
 
 }

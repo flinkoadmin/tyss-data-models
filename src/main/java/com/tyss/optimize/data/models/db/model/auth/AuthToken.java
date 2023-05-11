@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model.auth;
 
+import com.tyss.optimize.data.models.db.model.LicensePrivilege;
 import lombok.Data;
 
 @Data
@@ -18,5 +19,7 @@ public class AuthToken {
 	String activationStatus;
 	String jti;
 	String licenseStatus;
+	String userStatus;
 	String defaultLicenseId;
+	String licenseType;
 }

@@ -9,4 +9,5 @@ public class ApiProjectMetaData {
     private String projectId;
     private String moduleId;
     private String scriptId;
+    private String scriptName;
 }

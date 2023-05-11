@@ -1,5 +1,6 @@
 package com.tyss.optimize.data.models.db.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @Document(value = "nlps")
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Nlp extends BaseEntity{
 	
 	@Transient

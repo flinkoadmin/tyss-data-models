@@ -18,6 +18,7 @@ public class ExecutionStatistics {
     public Integer totalTerminated=0;
     public Integer totalAborted=0;
     public Integer totalNA=0;
+    public Integer totalPartiallyExecuted=0;
     public Long executionDuration=0l;
     public String  executionDurationInHourMinSecFormat="";
     public String os;

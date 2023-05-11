@@ -3,16 +3,13 @@ package com.tyss.optimize.data.models.db.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
-import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -32,8 +29,7 @@ public class Page extends BaseEntity{
     @Id
     public String id;
 
-    @Size(min = 2, max = 100, message
-            = "Name must be between 2 and 100 characters")
+    @Size(min = 2, message = "Name must have 2 or more characters")
     @NotNull(message = "name is mandatory")
     @NotBlank(message = "name must not be blank")
     String name;
@@ -47,9 +43,8 @@ public class Page extends BaseEntity{
     int elementCount;
     boolean expanded;
     boolean folder=true;
-    double executionOrder;
+	double executionOrder;
     boolean commit=false;
     boolean publish=false;
     boolean newState = false;
-
 }

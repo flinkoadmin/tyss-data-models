@@ -1,7 +1,9 @@
 package com.tyss.optimize.data.models.db.service;
 
+import com.tyss.optimize.common.util.CommonConstants;
 import com.tyss.optimize.data.models.db.model.DataProvider;
 import com.tyss.optimize.data.models.db.model.SheetData;
+import com.tyss.optimize.data.models.dto.ResponseDTO;
 import com.tyss.optimize.data.models.dto.StorageInfo;
 import com.tyss.optimize.data.models.dto.storage.StorageConfig;
 import com.tyss.optimize.data.models.dto.storage.StorageConfigFactory;
@@ -14,12 +16,13 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.json.simple.JSONArray;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -99,30 +102,25 @@ public class DataProviderFileService {
 
     }
 
-    public DataProvider readFileXls(String filePath) throws Exception {
+    public ResponseDTO readFileXls(String filePath) throws Exception {
+        ResponseDTO responseDTO = new ResponseDTO();
         DataProvider dataProvider = new DataProvider();
 
         String fileExt = FilenameUtils.getExtension(filePath);
 
-        switch (fileExt.toLowerCase()) {
-            case "xls":
-                readFromXls(dataProvider, filePath);
-                break;
-            case "xlsx":
-                readFromXls(dataProvider, filePath);
-                break;
-            case "csv":
-                readFromXls(dataProvider, filePath);
-                break;
-            case "numbers":
-                readFromXls(dataProvider, filePath);
-                break;
-            default:
+        if (Objects.nonNull(fileExt) && StringUtils.isNotEmpty(fileExt)) {
+            fileExt = fileExt.toLowerCase();
+            if (Arrays.asList("xls", "xlsx", "csv", "numbers").contains(fileExt)) {
+                responseDTO = readFromXls(dataProvider, filePath);
+            }
+        } else {
+            return invalidFileFormatResponse();
         }
-        return dataProvider;
+        return responseDTO;
     }
 
-    private void readFromXls(DataProvider dataProvider, String filePath) throws Exception {
+    private ResponseDTO readFromXls(DataProvider dataProvider, String filePath) throws Exception {
+        ResponseDTO responseDTO = new ResponseDTO();
         List<SheetData> sheetDataList = new ArrayList<>();
         StorageConfig storageConfig = storageConfigService.getStorageConfig();
         String bucketName = storageConfig.getInputs().getBucketName();
@@ -147,40 +145,40 @@ public class DataProviderFileService {
             sheetData.setToRow(((Integer) (sheet.getLastRowNum() + 1)).toString());
 
             if (null != sheet && sheet.getSheetName() != null && sheet.getSheetName().length() > 0) {
-                List<List<String>> sheetDataTable = getSheetDataList(sheet);
-                String jsonString = getJSONStringFromList(sheetDataTable);
-                sheetData.setHeader(sheetDataTable.get(0));
+                responseDTO = getSheetDataList(sheet);
+                if (CommonConstants.FAILURE.equalsIgnoreCase(responseDTO.getStatus())) {
+                    return responseDTO;
+                }
+                List<List<String>> sheetDataTable = (List<List<String>>) responseDTO.getResponseObject();
+                if (!CollectionUtils.isEmpty(sheetDataTable))
+                    sheetData.setHeader(sheetDataTable.get(0));
             }
             sheetDataList.add(sheetData);
         }
         dataProvider.setSheetdata(sheetDataList);
+        responseDTO.setResponseObject(dataProvider);
+        return responseDTO;
     }
 
-    public DataProvider viewFileData(String filePath, String sheetName) throws Exception {
+    public ResponseDTO viewFileData(String filePath, String sheetName) throws Exception {
+        ResponseDTO responseDTO = new ResponseDTO();
         DataProvider dataProvider = new DataProvider();
 
         String fileExt = FilenameUtils.getExtension(filePath);
 
-        switch (fileExt.toLowerCase()) {
-            case "xls":
-                viewFileData(dataProvider, filePath ,sheetName);
-                break;
-            case "xlsx":
-                viewFileData(dataProvider, filePath ,sheetName);
-                break;
-            case "csv":
-                viewFileData(dataProvider, filePath ,sheetName);
-                break;
-            case "numbers":
-                viewFileData(dataProvider, filePath ,sheetName);
-                break;
-            default:
+        if (Objects.nonNull(fileExt) && StringUtils.isNotEmpty(fileExt)) {
+            fileExt = fileExt.toLowerCase();
+            if (Arrays.asList("xls", "xlsx", "csv", "numbers").contains(fileExt)) {
+                responseDTO = viewFileData(dataProvider, filePath, sheetName);
+            }
+        } else {
+            return invalidFileFormatResponse();
         }
-
-        return dataProvider;
+        return responseDTO;
     }
 
-    private void viewFileData(DataProvider dataProvider, String filePath , String sheetName) throws Exception {
+    private ResponseDTO viewFileData(DataProvider dataProvider, String filePath, String sheetName) throws Exception {
+        ResponseDTO responseDTO = new ResponseDTO();
         StorageConfig storageConfig = storageConfigService.getStorageConfig();
         String bucketName = storageConfig.getInputs().getBucketName();
         String storageType = storageConfig.getType();
@@ -195,66 +193,94 @@ public class DataProviderFileService {
         Sheet sheet = new XSSFWorkbook(inputStream).getSheet(sheetName);
 
         if (null != sheet && sheet.getSheetName() != null && sheet.getSheetName().length() > 0) {
-            List<List<String>> sheetDataTable = getSheetDataList(sheet);
+            responseDTO = getSheetDataList(sheet);
+            if (CommonConstants.FAILURE.equalsIgnoreCase(responseDTO.getStatus())) {
+                return responseDTO;
+            }
+            List<List<String>> sheetDataTable = (List<List<String>>) responseDTO.getResponseObject();
             String jsonString = getJSONStringFromList(sheetDataTable);
             dataProvider.setExcelSheetData(jsonString);
+            responseDTO.setResponseObject(dataProvider);
         }
+        return responseDTO;
     }
 
-    public List<List<String>>  getSheetDataList(Sheet sheet) {
-
+    public ResponseDTO getSheetDataList(Sheet sheet) {
+        ResponseDTO responseDTO = new ResponseDTO();
         List<List<String>> totalRows = new ArrayList<List<String>>();
+        int firstCellNum = 0;
+        int lastCellNum = 0;
         int firstRowNum = sheet.getFirstRowNum();
         int lastRowNum = sheet.getLastRowNum();
 
-        if (lastRowNum > 0) {
-            for (int i = firstRowNum; i <lastRowNum+1; i++) {
-               Row  row = sheet.getRow(i);
-
-                int firstCellNum = row.getFirstCellNum();
-                int lastCellNum = row.getLastCellNum();
-
-                List<String> rowDataList = new ArrayList<String>();
+        if (lastRowNum >= 0 && firstRowNum == 0) {
+            for (int i = firstRowNum; i < lastRowNum + 1; i++) {
+                Row row = sheet.getRow(i);
+                if (i == 0) {
+                    if (Objects.nonNull(row)) {
+                        firstCellNum = row.getFirstCellNum();
+                        lastCellNum = row.getLastCellNum();
+                    } else
+                        return invalidFileFormatResponse();
+                }
+                List<String> rowDataList = new ArrayList<>();
                 for (int j = firstCellNum; j < lastCellNum; j++) {
-                    Cell cell = row.getCell(j);
-                    if (null != row.getCell(j)) {
-                        int cellType = cell.getCellType().getCode();
-                        if (cellType == CellType.BLANK.getCode()) {
-                            rowDataList.add("");
-                        } else if (cellType == CellType.NUMERIC.getCode()) {
-                            double numberValue = cell.getNumericCellValue();
-                            String stringCellValue = BigDecimal.valueOf(numberValue).toPlainString();
-                            rowDataList.add(stringCellValue);
-
-                        } else if (cellType == CellType.STRING.getCode()) {
-                            String cellValue = cell.getStringCellValue();
-                            rowDataList.add(cellValue);
-                        } else if (cellType == CellType.BOOLEAN.getCode()) {
-                            boolean numberValue = cell.getBooleanCellValue();
-
-                            String stringCellValue = String.valueOf(numberValue);
-
-                            rowDataList.add(stringCellValue);
-
+                    if (Objects.nonNull(row)) {
+                        if (null != row.getCell(j, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK)) {
+                            Cell cell = row.getCell(j);
+                            int cellType = cell.getCellType().getCode();
+                            if (cellType == CellType.BLANK.getCode()) {
+                                rowDataList.add("");
+                            } else if (cellType == CellType.NUMERIC.getCode()) {
+                                if (DateUtil.isCellDateFormatted(cell)) {
+                                    SimpleDateFormat dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
+                                    rowDataList.add(dateFormatter.format(cell.getDateCellValue()));
+                                }else{
+                                    double numberValue = cell.getNumericCellValue();
+                                    String stringCellValue = BigDecimal.valueOf(numberValue).toPlainString();
+                                    rowDataList.add(stringCellValue);
+                                }
+                            } else if (cellType == CellType.STRING.getCode()) {
+                                String cellValue = cell.getStringCellValue();
+                                rowDataList.add(cellValue);
+                            } else if (cellType == CellType.BOOLEAN.getCode()) {
+                                boolean numberValue = cell.getBooleanCellValue();
+                                String stringCellValue = String.valueOf(numberValue);
+                                rowDataList.add(stringCellValue);
+                            } else {
+                                if (cell.getCellType() == CellType.FORMULA) {
+                                    if (cell.getCachedFormulaResultType().getCode() == CellType.NUMERIC.getCode()) {
+                                        double numberValue = cell.getNumericCellValue();
+                                        String stringCellValue = BigDecimal.valueOf(numberValue).toPlainString();
+                                        rowDataList.add(stringCellValue);
+                                    } else if (cell.getCachedFormulaResultType().getCode() == CellType.STRING.getCode()) {
+                                        String cellValue = cell.getStringCellValue();
+                                        rowDataList.add(cellValue);
+                                    } else if (cell.getCachedFormulaResultType().getCode() == CellType.BOOLEAN.getCode()) {
+                                        boolean numberValue = cell.getBooleanCellValue();
+                                        String stringCellValue = String.valueOf(numberValue);
+                                        rowDataList.add(stringCellValue);
+                                    }
+                                }
+                            }
                         }
-                    }
-                    if(null == row.getCell(j))
+                    } else {
                         rowDataList.add("");
-
+                    }
                 }
                 totalRows.add(rowDataList);
             }
+            responseDTO.setResponseObject(totalRows);
+        } else {
+            return invalidFileFormatResponse();
         }
-        return totalRows;
+        return responseDTO;
     }
 
 
-
-
     private static String getJSONStringFromList(List<List<String>> dataTable) {
-        Set<String> colSet = new HashSet<>();
         String excelData = "";
-        String columnValue="";
+        String columnValue = "";
 
         if (dataTable != null) {
             int rowCount = dataTable.size();
@@ -263,20 +289,17 @@ public class DataProviderFileService {
                 JSONArray tableJSONArray = new JSONArray();
                 List<String> headerRow = dataTable.get(0);
                 int columnCount = headerRow.size();
-                 for (int i = 1 ; i < rowCount; i++) {
+                for (int i = 1; i < rowCount; i++) {
                     LinkedHashMap<Object, Object> jsonOrderedMap = new LinkedHashMap<Object, Object>();
                     List<String> dataRow = dataTable.get(i);
                     for (int j = 0; j < columnCount; j++) {
                         String columnName = headerRow.get(j);
-                        if(null != dataRow.get(j)) {
+                        if (null != dataRow.get(j)) {
                             columnValue = dataRow.get(j);
                         }
-
-                            String s =  columnValue.replaceAll("\\s+", " ");
-                        jsonOrderedMap.put(columnName,s.substring(0, Math.min(s.length(), 100)));
-
-                        }
-
+                        String s = columnValue.replaceAll("\\s+", " ");
+                        jsonOrderedMap.put(columnName, s.substring(0, Math.min(s.length(), 100)));
+                    }
                     tableJSONArray.add(jsonOrderedMap);
                 }
                 excelData = tableJSONArray.toString().replaceAll("////", "");
@@ -285,4 +308,11 @@ public class DataProviderFileService {
         return excelData;
     }
 
+    private ResponseDTO invalidFileFormatResponse() {
+        ResponseDTO responseDTO = new ResponseDTO();
+        responseDTO.setResponseCode(HttpStatus.BAD_REQUEST.value());
+        responseDTO.setStatus(CommonConstants.FAILURE);
+        responseDTO.setMessage("Invalid File Format");
+        return responseDTO;
+    }
 }

@@ -43,4 +43,5 @@ public class SelectedSystem {
     public String status;
     @ApiModelProperty(notes = "Client access")
     public String access;
+    private boolean headless;
 }

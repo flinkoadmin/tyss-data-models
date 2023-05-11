@@ -16,4 +16,5 @@ public class EmailData {
     private String attachPdfReport;
     private String attachHtmlReport;
     private String attachExecutionLogs;
+    private String emailManuallyTriggerEmailNotification;
 }
